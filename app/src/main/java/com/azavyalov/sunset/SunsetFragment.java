@@ -24,6 +24,10 @@ public class SunsetFragment extends Fragment {
     private int mSunsetSkyColor;
     private int mNightSkyColor;
 
+    private boolean sunset = true;
+    private int shortDuration = 1500;
+    private int longDuration = 3000;
+
     public static SunsetFragment newInstance() {
         return new SunsetFragment();
     }
@@ -45,36 +49,64 @@ public class SunsetFragment extends Fragment {
         mSceneView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startAnimation();
+
+                if (sunset) {
+                    startSunsetAnimation();
+                    sunset = false;
+                } else {
+                    startSunriseAnimation();
+                    sunset = true;
+                }
             }
         });
         return view;
     }
 
-    private void startAnimation() {
-        float sunYStart = mSunView.getTop();
-        float sunYEnd = mSkyView.getHeight();
+    private void startSunriseAnimation() {
 
-        ObjectAnimator heightAnimator = ObjectAnimator
-                .ofFloat(mSunView, "y", sunYStart, sunYEnd)
-                .setDuration(3000);
-        heightAnimator.setInterpolator(new AccelerateInterpolator());
-
-        ObjectAnimator sunsetSkyAnimator = ObjectAnimator
-                .ofInt(mSkyView, "backgroundColor", mBlueSkyColor, mSunsetSkyColor)
-                .setDuration(3000);
-        sunsetSkyAnimator.setEvaluator(new ArgbEvaluator());
-
-        ObjectAnimator nightSkyAnimator = ObjectAnimator
-                .ofInt(mSkyView, "backgroundColor", mSunsetSkyColor, mNightSkyColor).setDuration(1500);
-        nightSkyAnimator.setEvaluator(new ArgbEvaluator());
+        float sunYStart = mSkyView.getHeight();
+        float sunYEnd = mSunView.getTop();
 
         AnimatorSet animatorSet = new AnimatorSet();
         animatorSet
-                .play(heightAnimator)
-                .with(sunsetSkyAnimator)
-                .before(nightSkyAnimator);
-
+                .play(buildHeightAnimator(
+                        longDuration, sunYStart, sunYEnd))
+                .with(buildSkyAnimator(
+                        longDuration, mNightSkyColor, mSunsetSkyColor))
+                .before(buildSkyAnimator(
+                        shortDuration, mSunsetSkyColor, mBlueSkyColor));
         animatorSet.start();
+    }
+
+    private void startSunsetAnimation() {
+
+        float sunYStart = mSunView.getTop();
+        float sunYEnd = mSkyView.getHeight();
+
+        AnimatorSet animatorSet = new AnimatorSet();
+        animatorSet
+                .play(buildHeightAnimator(
+                        longDuration, sunYStart, sunYEnd))
+                .with(buildSkyAnimator(
+                        longDuration, mBlueSkyColor, mSunsetSkyColor))
+                .before(buildSkyAnimator(
+                        shortDuration, mSunsetSkyColor, mNightSkyColor));
+        animatorSet.start();
+    }
+
+    private ObjectAnimator buildHeightAnimator(int duration, float sunYStart, float sunYEnd) {
+        ObjectAnimator heightAnimator = ObjectAnimator
+                .ofFloat(mSunView, "y", sunYStart, sunYEnd)
+                .setDuration(duration);
+        heightAnimator.setInterpolator(new AccelerateInterpolator());
+        return heightAnimator;
+    }
+
+    private ObjectAnimator buildSkyAnimator(int duration, int... colors) {
+        ObjectAnimator skyAnimator = ObjectAnimator
+                .ofInt(mSkyView, "backgroundColor", colors)
+                .setDuration(duration);
+        skyAnimator.setEvaluator(new ArgbEvaluator());
+        return skyAnimator;
     }
 }
